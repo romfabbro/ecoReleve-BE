@@ -171,7 +171,7 @@
  		"pdf-file" : "Get PDF File",
  		"csv-file" :"Get CSV File",
  		"excel-file" : "Get Excel File",
- 		"sinp-file" : "Get SNIP/GINCO File",
+ 		"sinp-file" : "Get SINP/GINCO File",
  		"gpx-file" : "Get GPX File",
  		"step1-label" :"Choose the view to export",
  		"step2-label" :"Filter",

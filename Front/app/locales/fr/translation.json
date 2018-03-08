@@ -182,7 +182,7 @@
  		"pdf-file" : "fichier PDF",
  		"csv-file" :"fichier CSV",
 		 "excel-file" : "fichier Excel",
-		 "sinp-file" : "fichier SNIP/GINCO",
+		 "sinp-file" : "fichier SINP/GINCO",
  		"gpx-file" : "fichier GPX",
  		"step1-label" :"Choix de vue/protocole",
  		"step2-label" :"Filtre",
