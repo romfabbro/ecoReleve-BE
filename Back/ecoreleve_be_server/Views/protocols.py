@@ -70,6 +70,7 @@ class ObservationsView(DynamicObjectCollectionView):
 
     Collection = None
     item = ObservationView
+    children = [('{int}', ObservationView)]
     moduleFormName = 'ObservationForm'
     moduleGridName = 'ObservationFilter'
 
@@ -298,4 +299,4 @@ class ObservationsView(DynamicObjectCollectionView):
         return res
 
 
-RootCore.listChildren.append(('protocols', ObservationsView))
+RootCore.children.append(('protocols', ObservationsView))
