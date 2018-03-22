@@ -1,5 +1,5 @@
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.view import view_config
+from pyramid.view import view_config, view_defaults
 from pyramid.security import NO_PERMISSION_REQUIRED
 from ..Models import sendLog, FrontModules, Base
 from ..controllers.security import SecurityRoot, Resource, context_permissions
@@ -8,6 +8,9 @@ from collections import OrderedDict
 from sqlalchemy import select, join, desc, asc
 import json
 from datetime import datetime
+from zope.interface import Interface, implementer
+import pandas as pd
+import io
 
 
 def add_cors_headers_response_callback(event):
@@ -31,6 +34,16 @@ def error_view(exc, request):
     return exc
 
 
+class IRestCommonView(Interface):
+    pass
+
+class IRestCollectionView(IRestCommonView):
+    pass
+
+class IRestItemView(IRestCommonView):
+    pass
+
+@implementer(IRestCommonView)
 class CustomView(SecurityRoot):
     
     def __init__(self, ref, parent):
@@ -42,11 +55,8 @@ class CustomView(SecurityRoot):
         self.__actions__ = {}
 
     def __getitem__(self, ref):
-        if ref in self.actions:
-            self.retrieve = self.actions.get(ref)
-            return self
 
-        elif ref.isdigit():
+        if ref.isdigit():
             next_resource = self.get('{int}')
             return next_resource(ref, self)
         else:
@@ -166,21 +176,17 @@ class DynamicObjectValues(CustomView):
     def delete(self):
         pass
 
+@implementer(IRestItemView)
 class DynamicObjectView(CustomView):
 
     def __init__(self, ref, parent):
         CustomView.__init__(self, ref, parent)
-        self.__actions__ = {
-                            '0': self.parent.getForm,
-                            }
 
         if self.integers(ref):
             if int(ref) != 0:
                 self.objectDB = self.session.query(self.model).get(ref)
             else:
                 self.objectDB = None
-        # if not hasattr(self.objectDB, 'session') or not self.objectDB.session:
-        #     self.objectDB.session = self.session
 
         '''Set security according to permissions'''
         self.__acl__ = context_permissions[parent.__name__]
@@ -225,7 +231,7 @@ class DynamicObjectView(CustomView):
         self.session.delete(self.objectDB)
         self.objectDB.afterDelete()
         return 'deleted'
-
+@implementer(IRestCollectionView)
 
 class DynamicObjectCollectionView(CustomView):
 
@@ -243,25 +249,6 @@ class DynamicObjectCollectionView(CustomView):
             self.typeObj = objType
         else:
             self.typeObj = None
-
-        self.__actions__ = {'forms': self.getForm,
-                            'getFields': self.getGrid,
-                            'getFilters': self.getFilter,
-                            'getType': self.getType,
-                            'export': self.export,
-                            'count': self.count_,
-                            }
-
-    # def __getitem__(self, ref):
-    #     ''' return the next item in the traversal tree if ref is an id
-    #     else override the retrieve functions by the action name '''
-    #     if self.integers(ref):
-    #         return self.item(ref, self)
-    #     elif ref == 'autocomplete':
-    #         return AutocompleteView(ref, self)
-    #     else:
-    #         self.retrieve = self.actions.get(ref)
-    #         return self
 
     @property
     def moduleFormName(self):
@@ -472,8 +459,8 @@ class DynamicObjectCollectionView(CustomView):
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
-
-class CRUDView(object):
+@view_defaults(context=IRestCommonView)
+class CRUDCommonView(object):
     def __init__(self, context, request):
         self.request = request
         self.context = context
@@ -501,6 +488,32 @@ class CRUDView(object):
     @view_config(request_method='OPTIONS', renderer='json', permission=NO_PERMISSION_REQUIRED)
     def options(self):
         return
+
+
+@view_defaults(context=IRestCollectionView)
+class CRUDColltectionView(CRUDCommonView):
+
+    @view_config(name='getFields', request_method='GET', renderer='json', permission='read')
+    def getFields(self):
+        print('in collection view controller getFields')
+        return self.context.getGrid()
+
+    @view_config(name='getFilters', request_method='GET', renderer='json', permission='read')
+    def getFilter(self):
+        print('in collection view controller getFilter')
+        return self.context.getFilter()
+
+    @view_config(name='getType', request_method='GET', renderer='json', permission='read')
+    def getType(self):
+        return self.context.getType()
+
+    @view_config(name='count', request_method='GET', renderer='json', permission='read')
+    def count_(self):
+        return self.context.count_()
+
+    @view_config(name='export', request_method='GET', renderer='json', permission='read')
+    def export(self):
+        return self.context.export()
 
 
 def add_routes(config):

@@ -31,7 +31,7 @@ class Resource(dict):
         if next_resource is not None:
             return next_resource(item, self)
         else:
-            return self
+            raise KeyError
 
     def add_child(self, ref, klass):
         self[ref] = klass

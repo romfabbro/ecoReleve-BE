@@ -76,7 +76,6 @@ class ObservationsView(DynamicObjectCollectionView):
 
     def __init__(self, ref, parent):
         DynamicObjectCollectionView.__init__(self, ref, parent)
-        self.POSTactions = {'batch': self.batch}
         self.parent = parent
         if 'objectType' in self.request.params:
             self.typeObj = int(self.request.params['objectType'])
@@ -85,11 +84,7 @@ class ObservationsView(DynamicObjectCollectionView):
             (Allow, 'group:superUser', ALL_PERMISSIONS),
             (Allow, 'group:user', ALL_PERMISSIONS)
         ]
-        
 
-    def __getitem__(self, ref):
-        self.create = self.POSTactions.get(ref)
-        return DynamicObjectCollectionView.__getitem__(self, ref)
 
     def retrieve(self):
         # if self.parent.__class__.__name__ == 'StationView':
@@ -300,6 +295,12 @@ class ObservationsView(DynamicObjectCollectionView):
             res.append(elem)
         res = sorted(res, key=lambda k: k['Name'])
         return res
+
+
+@view_config(context=ObservationsView, name='batch', renderer='json', request_method='POST')
+def batch(context, request):
+    print(context, request)
+    return context.batch()
 
 
 RootCore.children.append(('protocols', ObservationsView))
